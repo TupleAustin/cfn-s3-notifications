@@ -1,0 +1,111 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Queue connector test stack",
+  "Resources": {
+    "SourceBucket": {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "AccessControl" : "Private"
+      }
+    },
+    "OtherBucket": {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "AccessControl" : "Private"
+      }
+    },
+    "DestinationQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "DelaySeconds": 0,
+        "MaximumMessageSize": 262144,
+        "MessageRetentionPeriod": 345600,
+        "ReceiveMessageWaitTimeSeconds": 20,
+        "VisibilityTimeout": 300
+      }
+    },
+    "QueueEventConnection": {
+      "DependsOn": [
+        "DestinationQueue",
+        "SourceBucket",
+        "OtherBucket"
+      ],
+      "Type": "Custom::S3ToSQSEventNotification",
+      "Properties": {
+        "ServiceToken": "arn:aws:lambda:us-east-1:232795604305:function:S3ToSQSEventNotification",
+        "Bucket": {
+          "Ref": "SourceBucket"
+        },
+        "QueueArn": {
+          "Fn::GetAtt": [
+            "DestinationQueue",
+            "Arn"
+          ]
+        },
+        "Events": [
+          "s3:ObjectCreated:Put"
+        ]
+      }
+    },
+    "DaemonQueuePolicy": {
+      "DependsOn": [
+        "DestinationQueue",
+        "SourceBucket",
+        "OtherBucket"
+      ],
+      "Type" : "AWS::SQS::QueuePolicy",
+        "Properties" : {
+        "PolicyDocument" : {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "FeedDropQueueSQSPolicy",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": "SQS:SendMessage",
+              "Resource": "*",
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:s3:*:*:",
+                        {
+                          "Ref": "SourceBucket"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Queues": [
+          {
+            "Ref": "DestinationQueue"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "SourceBucket": {
+      "Description": "Source bucket name",
+      "Value": {
+        "Ref": "SourceBucket"
+      }
+    },
+    "DestinationQueue": {
+      "Description": "The URL of the destination queue",
+      "Value": {
+        "Ref": "DestinationQueue"
+      }
+    }
+
+
+  }
+}
