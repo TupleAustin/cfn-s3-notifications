@@ -15,10 +15,12 @@
     {
       "Action": [
         "iam:PutRolePolicy",
-        "iam:CreateRole"
+        "iam:CreateRole",
+        "iam:GetUser"
       ],
       "Effect": "Allow",
       "Resource": [
+        "arn:aws:iam::*:user/*",
         "arn:aws:iam::*:policy/CloudFormationS3ToSQSCustomResourcePolicy",
         "arn:aws:iam::*:role/CloudFormationS3ToSQSCustomResourceRole"
       ]
