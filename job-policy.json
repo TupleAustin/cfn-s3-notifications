@@ -1,0 +1,29 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:GetFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:lambda:*:*:function:CloudFormationS3ToSQSCustomResource"
+    },
+    {
+      "Action": [
+        "iam:CreateRole"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:iam::role/CloudFormationS3ToSQSCustomResourceRole"
+    },
+    {
+      "Action": [
+        "iam:PutRolePolicy"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:iam::policy/CloudFormationS3ToSQSCustomResourcePolicy"
+    }
+  ]
+}

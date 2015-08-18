@@ -8,13 +8,8 @@
         "AccessControl" : "Private"
       }
     },
-    "OtherBucket": {
-      "Type" : "AWS::S3::Bucket",
-      "Properties" : {
-        "AccessControl" : "Private"
-      }
-    },
-    "DestinationQueue": {
+
+    "Queue": {
       "Type": "AWS::SQS::Queue",
       "Properties": {
         "DelaySeconds": 0,
@@ -24,21 +19,21 @@
         "VisibilityTimeout": 300
       }
     },
-    "QueueEventConnection": {
+    "S3ToQueueEventConnection": {
       "DependsOn": [
-        "DestinationQueue",
-        "SourceBucket",
-        "OtherBucket"
+        "Queue",
+        "SourceBucket"
       ],
-      "Type": "Custom::S3ToSQSEventNotification",
+      "Type": "Custom::S3EventNotification",
       "Properties": {
         "ServiceToken": "arn:aws:lambda:us-east-1:232795604305:function:S3ToSQSEventNotification",
+        "TargetType": "Queue",
         "Bucket": {
           "Ref": "SourceBucket"
         },
         "QueueArn": {
           "Fn::GetAtt": [
-            "DestinationQueue",
+            "Queue",
             "Arn"
           ]
         },
@@ -47,11 +42,10 @@
         ]
       }
     },
-    "DaemonQueuePolicy": {
+    "QueuePolicy": {
       "DependsOn": [
-        "DestinationQueue",
-        "SourceBucket",
-        "OtherBucket"
+        "Queue",
+        "SourceBucket"
       ],
       "Type" : "AWS::SQS::QueuePolicy",
         "Properties" : {
@@ -59,7 +53,7 @@
           "Version": "2012-10-17",
           "Statement": [
             {
-              "Sid": "FeedDropQueueSQSPolicy",
+              "Sid": "S3NotificationQueuePolicy",
               "Effect": "Allow",
               "Principal": {
                 "AWS": "*"
@@ -86,11 +80,78 @@
         },
         "Queues": [
           {
-            "Ref": "DestinationQueue"
+            "Ref": "Queue"
           }
         ]
       }
-    }
+    },
+
+    "TopicPolicy": {
+      "DependsOn": [
+        "Topic",
+        "SourceBucket"
+      ],
+      "Type" : "AWS::SNS::TopicPolicy",
+        "Properties" : {
+        "PolicyDocument" : {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "S3NotificationTopicPolicy",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": "SNS:Publish",
+              "Resource": "*",
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:s3:*:*:",
+                        {
+                          "Ref": "SourceBucket"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Topics": [
+          {
+            "Ref": "Topic"
+          }
+        ]
+      }
+    },
+    "S3ToTopicEventConnection": {
+      "DependsOn": [
+        "Queue",
+        "SourceBucket"
+      ],
+      "Type": "Custom::S3EventNotification",
+      "Properties": {
+        "ServiceToken": "arn:aws:lambda:us-east-1:232795604305:function:S3ToSQSEventNotification",
+        "TargetType": "Topic",
+        "Bucket": {
+          "Ref": "SourceBucket"
+        },
+        "TopicArn": {
+          "Fn::GetAtt": [
+            "Queue",
+            "Arn"
+          ]
+        },
+        "Events": [
+          "s3:ObjectCreated:Put"
+        ]
+      }
+    },
   },
   "Outputs": {
     "SourceBucket": {
@@ -99,10 +160,10 @@
         "Ref": "SourceBucket"
       }
     },
-    "DestinationQueue": {
+    "Queue": {
       "Description": "The URL of the destination queue",
       "Value": {
-        "Ref": "DestinationQueue"
+        "Ref": "Queue"
       }
     }
 
