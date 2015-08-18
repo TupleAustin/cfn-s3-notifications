@@ -5,6 +5,7 @@
       "Action": [
         "lambda:CreateFunction",
         "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
         "lambda:UpdateFunctionCode",
         "lambda:UpdateFunctionConfiguration"
       ],
@@ -13,17 +14,14 @@
     },
     {
       "Action": [
+        "iam:PutRolePolicy",
         "iam:CreateRole"
       ],
       "Effect": "Allow",
-      "Resource": "arn:aws:iam::*:role/CloudFormationS3ToSQSCustomResourceRole"
-    },
-    {
-      "Action": [
-        "iam:PutRolePolicy"
-      ],
-      "Effect": "Allow",
-      "Resource": "arn:aws:iam::*:policy/CloudFormationS3ToSQSCustomResourcePolicy"
+      "Resource": [
+        "arn:aws:iam::*:policy/CloudFormationS3ToSQSCustomResourcePolicy",
+        "arn:aws:iam::*:role/CloudFormationS3ToSQSCustomResourceRole"
+      ]
     }
   ]
 }
